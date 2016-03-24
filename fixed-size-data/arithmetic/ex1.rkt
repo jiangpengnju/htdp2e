@@ -9,9 +9,5 @@
 (define x 3)
 (define y 4)
 
-(define (distance-to-origin x y)
-  (sqrt (+ (sqr x) (sqr y))))
+(sqrt (+ (sqr x) (sqr y)))
 
-
-(distance-to-origin 3 4)     ; 5
-(distance-to-origin 5 12)    ; 13
