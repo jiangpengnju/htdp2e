@@ -7,11 +7,11 @@
 
 
 ; A Letter is one of:
-; "a" through "z"
+; lower case "a" through "z"
 ; #false
 
 
-(define-struct word [l1 l2 l3])
-; A Word is a structure: (make-word Letter Letter Letter)
-; interpretation: (make-word l1 l2 l3) represents a word consists of three Letters
+(define-struct 3lword [l1 l2 l3])
+; A 3LWord is a structure: (make-word Letter Letter Letter)
+; interpretation: (make-3lword l1 l2 l3) represents a word consists of three Letters
 ; l1, l2, l3 (orderly)

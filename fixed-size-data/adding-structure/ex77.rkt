@@ -6,7 +6,7 @@
 ; hours, minutes, and seconds.
 
 
-(define-struct TimePoint [hour minute second])
-; A TimePoint is a structure: (make Number Number Number)
-; interpretation: (make-TimePoint h m s) is a point in time that is h hours,
+(define-struct time [hour minute second])
+; A Time is a structure: (make-time Number Number Number)
+; interpretation: (make-time h m s) is a time point that is h hours,
 ;  m minutes and s seconds since midnight.
