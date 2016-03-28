@@ -12,31 +12,49 @@
 (require 2htdp/image)
 (require 2htdp/universe)
 
-(define DECREASE_WITH_EACH_TICK 0.1)
-(define MINIMUM_HAPPINESS 0)
-(define INCREASE_RATE_WITH_DOWN_KEY 1/5)
-(define INCREASE_RATE_WITH_UP_KEY 1/3)
+; physical constants
+(define MIN-HAPPY 0)
+(define MAX-HAPPY 100)
+(define DELTA-TICK 0.1)
+(define INC-RATE-FOR-DOWN 1/5)
+(define INC-RATE-FOR-UP 1/3)
 
-(define BACKGROUND (empty-scene 100 100))
-(define MID-WIDTH-OF-WORLD (/ (image-width BACKGROUND) 2))
-(define MID-HEIGHT-OF-WORLD (/ (image-height BACKGROUND) 2))
-(define TEXT-FONT 36)
-(define TEXT-COLOR "indigo")
+(define WIDTH 300)
+(define HEIGHT 200)
+(define FRAME-WIDTH 200)
+(define FRAME-HEIGHT 10)
+
+; visual constants
+(define MT (empty-scene WIDTH HEIGHT))
+(define FRAME (rectangle FRAME-WIDTH FRAME-HEIGHT "outline" "black"))
+
+(define X-FRAME (/ FRAME-WIDTH 2))
+(define Y-FRAME 30)
+
+
 ; WorldState is a Number
-; interperation: current happiness score.
+; interperation: current happiness level.
 
 
 ; WorldState -> Image
-; displays current score
+; displays current level.
 (check-expect (render 100) (place-image
-                            (text "100" TEXT-FONT TEXT-COLOR)
-                            50 50
-                            BACKGROUND))
+                            (overlay/align "left" "middle"
+                                           (rectangle (* FRAME-WIDTH (/ 100 MAX-HAPPY)) FRAME-HEIGHT
+                                                      "solid" "red")
+                                           FRAME)
+                            X-FRAME Y-FRAME
+                            MT))
 
 (define (render ws)
-  (place-image (text (number->string ws) TEXT-FONT TEXT-COLOR)
-               MID-WIDTH-OF-WORLD MID-HEIGHT-OF-WORLD
-               BACKGROUND))
+  (place-image
+   (overlay/align "left" "middle"
+                  (rectangle (* FRAME-WIDTH (/ ws MAX-HAPPY)) FRAME-HEIGHT
+                             "solid" "red")
+                  FRAME)
+   X-FRAME Y-FRAME
+   MT))
+
 
 ; WorldState -> WorldState
 ; with each clock tick, happiness decreases by a fixed number.
@@ -45,19 +63,28 @@
 
 (define (tock ws)
   (cond
-    [(> (- ws DECREASE_WITH_EACH_TICK) MINIMUM_HAPPINESS) (- ws DECREASE_WITH_EACH_TICK)]
-    [(<= (- ws DECREASE_WITH_EACH_TICK) MINIMUM_HAPPINESS) MINIMUM_HAPPINESS]))
+    [(> (- ws DELTA-TICK) MIN-HAPPY) (- ws DELTA-TICK)]
+    [(<= (- ws DELTA-TICK) MIN-HAPPY) MIN-HAPPY]))
+
 
 ; WorldState ke -> WorldState
 ; every time the up or down key expressed, the score increase by some percent.
 (check-expect (ke-handler 15 "down") 18)
 (check-expect (ke-handler 15 "up") 20)
 (check-expect (ke-handler 12 "left") 12)
+(check-expect (ke-handler 90 "up") 100)
+(check-expect (ke-handler 90 "down") 100)
 
 (define (ke-handler ws ke)
   (cond
-    [(string=? "down" ke) (+ ws (* ws INCREASE_RATE_WITH_DOWN_KEY))]
-    [(string=? "up" ke) (+ ws (* ws INCREASE_RATE_WITH_UP_KEY))]
+    [(string=? "down" ke)
+     (if (>= (+ ws (* ws INC-RATE-FOR-DOWN)) MAX-HAPPY)
+         MAX-HAPPY
+         (+ ws (* ws INC-RATE-FOR-DOWN)))]
+    [(string=? "up" ke)
+     (if (>= (+ ws (* ws INC-RATE-FOR-UP)) MAX-HAPPY)
+         MAX-HAPPY
+         (+ ws (* ws INC-RATE-FOR-UP)))]
     [else ws]))
 
 
