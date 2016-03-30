@@ -1,0 +1,127 @@
+;; The first three lines of this file were inserted by DrRacket. They record metadata
+;; about the language level of this file in a form that our tools can easily process.
+#reader(lib "htdp-beginner-reader.ss" "lang")((modname space_invader_game.v3) (read-case-sensitive #t) (teachpacks ()) (htdp-settings #(#t constructor repeating-decimal #f #t none #f () #f)))
+; Design si-render function for rendering.
+
+(require 2htdp/image)
+
+; physical constants
+(define WIDTH 200)
+(define HEIGHT 200)
+
+(define HALF-WIDTH (/ WIDTH 2))
+
+(define TANK-WIDTH 80)
+(define TANK-HEIGHT 20)
+
+(define MISSILE-SIZE 10)
+
+(define TANK-SPEED-X 5)
+(define UFO-SPEED-Y 3)
+(define MISSILE-SPEED-Y 7)
+
+; visual constants
+(define MT (empty-scene WIDTH HEIGHT))
+(define UFO
+  (overlay (circle 5 "solid" "green")
+           (rectangle 20 2 "solid" "green")))
+(define TANK
+  (rectangle TANK-WIDTH TANK-HEIGHT "solid" "blue"))
+(define MISSILE
+  (triangle MISSILE-SIZE "outline" "red"))
+
+(define TANK-Y (- HEIGHT (/ TANK-HEIGHT 2)))
+(define UNFIRED-MISSILE-Y (- HEIGHT (+ TANK-HEIGHT (/ (image-height MISSILE) 2))))
+
+
+
+;; Data Definition
+
+; A UFO is Posn.
+; interpretation: (make-posn x y) is the UFO's current location
+
+
+(define-struct tank [loc vel])
+; A Tank is a structure: (make-tank Number Number)
+; interpretation: (make-tank x dx) means the tank is at position (x, TANK-Y)
+; and it moves dx pixels per clock tick
+
+
+; A Missile is Posn.
+; interpretation: (make-posn x y) is the missile's current location
+
+
+(define-struct aim [ufo tank])
+; An Aim is a structure: (make-aim UFO Tank)
+; interpretation: (make-aim u t) represents the time period when the player is
+; tring to get the tank in position for a shot
+
+
+(define-struct fired [ufo tank missile])
+; A Fired is a structure: (make-fired UFO Tank Missile)
+; interpretation: (make-fired u t m) represents the states of the UFO, the tank,
+; and the missile after the missile is fired
+
+
+; A SIGS is one of:
+; - (make-aim UFO Tank)
+; - (make-fired UFO Tank Missile)
+; interpretation: represents the state of the space invader game
+
+(define ex1 (make-aim (make-posn 20 10) (make-tank 28 -3)))
+
+(define ex2 (make-fired (make-posn 20 10)
+                        (make-tank 28 -3)
+                        (make-posn 28 UNFIRED-MISSILE-Y)))
+
+(define ex3 (make-fired (make-posn 20 100)
+                        (make-tank 100 3)
+                        (make-posn 22 103)))
+
+
+
+; SGIS -> Image
+; add TANK, UFO, and possibly the MISSILE to MT
+
+(check-expect (si-render ex1) (place-image UFO
+                                           20 10
+                                           (place-image TANK
+                                                        28 TANK-Y
+                                                        MT)))
+(check-expect (si-render ex2) (place-image MISSILE
+                                           28 UNFIRED-MISSILE-Y
+                                           (place-image UFO
+                                                        20 10
+                                                        (place-image TANK
+                                                                     28 TANK-Y
+                                                                     MT))))
+(check-expect (si-render ex3) (place-image MISSILE
+                                           22 103             
+                                           (place-image UFO
+                                                        20 100
+                                                        (place-image TANK
+                                                                     100 TANK-Y
+                                                                     MT))))
+
+(define (si-render s)
+  (cond
+    [(aim? s) (tank-render (aim-tank s)
+                           (ufo-render (aim-ufo s) MT))]
+    [(fired? s) (missile-render (fired-missile s)
+                                (tank-render (fired-tank s)
+                                             (ufo-render (fired-ufo s) MT)))]))
+
+
+; Tank Image -> Image
+; adds t to the given image im
+(define (tank-render t im) im)
+
+
+; UFO Image -> Image
+; add u to the given image im
+(define (ufo-render u im) im)
+
+
+; MISSILE Image -> Image
+; add m to the given image im
+(define (missile-render m im) im)
