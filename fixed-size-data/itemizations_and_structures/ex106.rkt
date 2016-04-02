@@ -11,3 +11,27 @@
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
+
+; A Type is one of the following:
+; - "automobile"
+; - "van"
+; - "bus"
+; - "SUV"
+; - "truck"
+; interpretation: vehicle types
+
+
+(define-struct vehicle [type passengers license-place fuel-consumption])
+; a Vehicle is a structure: (make-vehicle Type Number String Number)
+; interpretation: (make-vehicle t np lp fc) is a vehicle of t type that can
+; comfortbly accomodate np passengers, with its license at the position lp,
+; and can drive fc miles per gallon
+
+
+
+; Vehicle -> ...
+(define (f v)
+  (... (vehicle-type v) ...
+       (vehicle-passengers v) ...
+       (vehicle-license-place v) ...
+       (vehicle-fuel-consumption v)...))
