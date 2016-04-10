@@ -1,0 +1,91 @@
+;; The first three lines of this file were inserted by DrRacket. They record metadata
+;; about the language level of this file in a form that our tools can easily process.
+#reader(lib "htdp-beginner-abbr-reader.ss" "lang")((modname word-games-composition-illustrated.v2) (read-case-sensitive #t) (teachpacks ()) (htdp-settings #(#t constructor repeating-decimal #f #t none #f () #f)))
+; Sample Problem: Given a word, find (all possible) words that are made up
+; from some letters. For example, "cat" also spells "act".
+
+; TASKs:
+; 1. A systematic enumberation of all possible arrangements
+; 2. The search in an English-language dictionary
+
+; THIS SECTION covers the design of the LATTER. Focus on the high-level ideas
+; of systematic program design.
+
+
+(require 2htdp/batch-io)
+
+
+
+; constants
+; On OS X:
+(define DICTIONARY-LOCATION "/usr/share/dict/words")
+
+
+
+; A Word is one of:
+; - '()
+; (cons 1String Word)
+; interpretation: a String as a list of single Strings (letters)
+
+(define word1 (list "c" "a" "t"))
+(define word2 (list "r" "a" "t"))
+
+
+; A List-of-words is one of:
+; - '()
+; (cons Word List-of-words)
+
+(define low1 (list word1 word2))
+
+
+
+; String -> List-of-strings
+; find all words that the letters of some given word spell
+
+(check-member-of (alternative-words "cat")
+                 (list "act" "cat")
+                 (list "cat" "act"))
+
+; List-of-strings -> Boolean
+; checks if w contains all alternative words from "rat"
+(define (all-words-from-rat? w)
+  (and (member? "art" w)
+       (member? "tar" w)
+       (member? "rat" w)))
+
+(check-satisfied (alternative-words "rat") all-words-from-rat?)
+
+(define (alternative-words s)
+  (in-dictionary (words->strings (arrangements (string->word s)))))
+
+
+; List-of-strings -> List-of-strings
+; pick out all those Strings that occur in the dictionary
+(define (in-dictionary los)
+  empty)
+
+
+; List-of-words -> List-of-strings
+; turn all words in low into Strings
+(define (words->strings low)
+  empty)
+
+
+; Word -> List-of-words
+; find all re-arrangements of word
+(define (arrangements word)
+  (list word))
+
+
+; String -> Word
+; convert s to the chosen word representation
+(define (string->word s)
+  ...)
+
+
+; Word -> String
+; convert w to a string
+(define (word->string w)
+  ...)
+
+
