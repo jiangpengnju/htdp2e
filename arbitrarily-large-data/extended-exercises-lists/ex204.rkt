@@ -1,17 +1,15 @@
 ;; The first three lines of this file were inserted by DrRacket. They record metadata
 ;; about the language level of this file in a form that our tools can easily process.
-#reader(lib "htdp-beginner-abbr-reader.ss" "lang")((modname ex203) (read-case-sensitive #t) (teachpacks ()) (htdp-settings #(#t constructor repeating-decimal #f #t none #f () #f)))
-; Develop a data representation for worms with tails. A worm's tail is
-; a possibly empty sequence of "connected" segments. Here "connected" means that
-; the coordinates of a segment differ grom those of its predecessor in at most
-; one direction and, if rendered, the two segments touch. To keep things simple,
-; treat all segments -- head and tail segments -- the same.
+#reader(lib "htdp-beginner-abbr-reader.ss" "lang")((modname ex204) (read-case-sensitive #t) (teachpacks ()) (htdp-settings #(#t constructor repeating-decimal #f #t none #f () #f)))
+; Re-design your program from ex203 so that it stops if the worm has run into
+; the walls of the world or into itseld.
+; Display a message like the one in ex202 to explain whether the program stopped
+; because the worm hit the wall or because it ran into itself.
 
-; Then modify your program form ex201 to accommodate a multi-segment worm.
-; Keep things simple: (1) your program may render all worm segments as red disks;
-; (2) one way to think of the worm's movement is to add a segment in the direction
-; in which it is moving and to delete the last segment; and (3) ignore that the
-; worm may run into the wall or into itself.
+; Hint (1) To determine whether a worm is going to run into itself, check whether
+; the position of the head would coincide with one of its old tail segments if
+; it moved. (2) Read up on the BSL+ primitive member? .
+
 
 
 (require 2htdp/image)
@@ -25,11 +23,17 @@
 (define NY 20)
 (define WIDTH (* NX D))
 (define HEIGHT (* NY D))
+(define HIT-BORDER-TXT "worm hit border")
+(define HIT-ITSELF-TXT "worm hit itself")
+(define FONT-SIZE 15)
+(define FONT-COLOR "black")
 
 ; visual constants
 (define SEG (circle R "solid" "red"))
 (define HEAD SEG)
 (define MT (empty-scene WIDTH HEIGHT))
+(define HIT-BORDER (text HIT-BORDER-TXT FONT-SIZE FONT-COLOR))
+(define HIT-ITSELF (text HIT-ITSELF-TXT FONT-SIZE FONT-COLOR))
 
 
 ; A Direction is one of:
@@ -227,10 +231,72 @@
              d))
 
 
-; Number -> 
+; Worm -> Boolean
+; decides if the game is over
+(define (stop? w)
+  (or (hit-wall? w)
+      (hit-itself? w)))
+
+
+; Worm -> Boolean
+; decides if the worm hits the wall
+
+(check-expect (hit-wall? w1) #f)
+(check-expect (hit-wall? (make-worm (list (make-posn 20 3)) "right")) #t)
+
+(define (hit-wall? w)
+  (or (< (posn-x (first (worm-shape w))) 0)
+      (> (posn-x (first (worm-shape w))) (sub1 NX))
+      (< (posn-y (first (worm-shape w))) 0)
+      (> (posn-y (first (worm-shape w))) (sub1 NY))))
+
+
+; Worm -> Boolean
+; decides if the worm hits itself
+(define (hit-itself? w)
+  #f)
+
+
+; Worm -> Image
+; renders the scene when game stops
+(define (render-stop w)
+  (cond
+    [(hit-wall? w) (render-hit-wall w)]
+    [(hit-itself? w) (render-hit-itself w)]))
+
+
+; Worm -> Image
+; renders the scene when worm hit the wall
+
+(check-expect (render-hit-wall (make-worm (list (make-posn 20 3)) "right"))
+              (place-image HIT-BORDER
+               (/ WIDTH 2) (* 3/4 HEIGHT)
+               (render (make-worm 19.2 3 "right"))))
+
+(define (render-hit-wall w)
+  (place-image HIT-BORDER
+               (/ WIDTH 2) (* 3/4 HEIGHT)
+               (render
+                (cond
+                  [(string=? "left" (worm-d w)) (worm-up-x w (+ (worm-x w) 0.8))]
+                  [(string=? "right" (worm-d w)) (worm-up-x w (- (worm-x w) 0.8))]
+                  [(string=? "up" (worm-d w)) (worm-up-y w (+ (worm-y w) 0.8))]
+                  [(string=? "down" (worm-d w)) (worm-up-y w (- (worm-y w) 0.8))]))))
+
+
+
+; Worm -> Image
+; renders the scene when the worm hit itself
+(define (render-hit-itself w)
+  MT)
+
+
+
+; Number -> Worm
 ; simulates a worm with tail.
 (define (main-worm-with-tail r)
   (big-bang w2
             [to-draw render]
             [on-tick tock r]
-            [on-key control]))
+            [on-key control]
+            [stop-when stop? render-stop]))
