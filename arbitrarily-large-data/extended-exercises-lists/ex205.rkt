@@ -1,14 +1,12 @@
 ;; The first three lines of this file were inserted by DrRacket. They record metadata
 ;; about the language level of this file in a form that our tools can easily process.
-#reader(lib "htdp-beginner-abbr-reader.ss" "lang")((modname ex204) (read-case-sensitive #t) (teachpacks ()) (htdp-settings #(#t constructor repeating-decimal #f #t none #f () #f)))
-; Re-design your program from ex203 so that it stops if the worm has run into
-; the walls of the world or into itseld.
-; Display a message like the one in ex202 to explain whether the program stopped
-; because the worm hit the wall or because it ran into itself.
+#reader(lib "htdp-beginner-abbr-reader.ss" "lang")((modname ex205) (read-case-sensitive #t) (teachpacks ()) (htdp-settings #(#t constructor repeating-decimal #f #t none #f () #f)))
+; Equip your program from ex204 with food. At any point in time, the box should
+; contain one piece of food. To keep things simple, a piece of food is of the same
+; size as worm segment. When the worm's head is located at the same position as the
+; food, the worm eats the food, meaning the worm's tail is txtended by one segment.
+; As the piece of food is eaten, another one shows up at a different location.
 
-; Hint (1) To determine whether a worm is going to run into itself, check whether
-; the position of the head would coincide with one of its old tail segments if
-; it moved. (2) Read up on the BSL+ primitive member? .
 
 
 
@@ -30,6 +28,7 @@
 
 ; visual constants
 (define SEG (circle R "solid" "red"))
+(define FOOD (circle R "solid" "green"))
 (define HEAD SEG)
 (define MT (empty-scene WIDTH HEIGHT))
 (define HIT-BORDER (text HIT-BORDER-TXT FONT-SIZE FONT-COLOR))
