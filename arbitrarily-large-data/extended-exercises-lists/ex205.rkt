@@ -18,7 +18,8 @@
 (define R 5)
 (define D (* 2 R))
 (define NX 20)
-(define NY 20)
+(define NY NX)
+(define MAX NX)
 (define WIDTH (* NX D))
 (define HEIGHT (* NY D))
 (define HIT-BORDER-TXT "worm hit border")
@@ -68,13 +69,49 @@
 (define w3 (make-worm l3 "down"))
 
 
+(define-struct world-state (worm food))
+; A WorldState is a structure: (make-world-state Worm Posn)
+; interpretation: (make-world-state w p) represents the current state of the game: w
+;    for the worm, p for the position of food.
+
+(define s1 (make-world-state w1 (make-posn 8 9)))
+(define s2 (make-world-state w2 (make-posn 5 5)))
+(define s3 (make-world-state w3 (make-posn 15 11)))   ; about-to-eat
+
+
+; WorldState -> Image
+; add the image of worm and food according to the ws
+
+(check-expect (render-world-state s1)
+              (place-image FOOD
+                           (+ R (* 8 D)) (+ R (* 9 D))
+                           (render-worm w1)))
+
+(define (render-world-state ws)
+  (render-food (world-state-food ws)
+               (render-worm (world-state-worm ws))))
+
+
+; Posn Image -> Image
+; add image of food at position p to given im
+
+(check-expect (render-food (make-posn 8 9) MT)
+              (place-image FOOD
+                           (+ R (* 8 D)) (+ R (* 9 D))
+                           MT))
+
+(define (render-food p im)
+  (place-image FOOD
+               (+ R (* D (posn-x p))) (+ R (* D (posn-y p)))
+               im))
+
 
 ; Worm -> Image
 ; adds the image of all segments of w onto the scene
 
-(check-expect (render w1) (place-image SEG (+ R (* 5 D)) (+ R (* 8 D)) MT))
+(check-expect (render-worm w1) (place-image SEG (+ R (* 5 D)) (+ R (* 8 D)) MT))
 
-(define (render w)
+(define (render-worm w)
   (render-segments (worm-shape w)))
 
 
@@ -115,15 +152,85 @@
                im))
 
 
+; WorldState -> WorldState
+; moves the worm one step more; handle food eating, if get a food
+
+(check-expect (tock-world-state s1)
+              (make-world-state (make-worm (list (make-posn 5 7)) "up")
+                                (make-posn 8 9)))
+(check-random (tock-world-state s3)
+              (make-world-state (make-worm (list (make-posn 15 11)
+                                                 (make-posn 15 10)
+                                                 (make-posn 15 9)
+                                                 (make-posn 14 9)) "down")
+                                (food-create (make-posn 15 11))))
+
+(define (tock-world-state ws)
+  (cond
+    [(about-to-eat? ws)
+     (make-world-state (worm-fed (world-state-worm ws) (world-state-food ws))
+                       (food-create (world-state-food ws)))]
+    [else
+     (make-world-state (tock-worm (world-state-worm ws))
+                       (world-state-food ws))]))
+
+
+; Worm Posn -> Worm
+; generates a worm just after feeding by food at position p
+
+(check-expect (worm-fed w3 (make-posn 15 11))
+              (make-worm (list (make-posn 15 11)
+                               (make-posn 15 10)
+                               (make-posn 15 9)
+                               (make-posn 14 9)) "down"))
+
+(define (worm-fed w p)
+  (make-worm (add-at-head (worm-shape w) p)
+             (worm-d w)))
+
+
+; WorldState -> Boolean
+; check if the worm can get the food, in the given ws
+
+(check-expect (about-to-eat? s1) #f)
+(check-expect (about-to-eat? s3) #t)
+
+(define (about-to-eat? ws)
+  (equal? (world-state-food ws)
+          (tock-head (world-state-worm ws))))
+
+
+; Posn -> Posn
+; create food at a random position except for the orign p AND the body of the worm
+
+(check-satisfied (food-create (make-posn 1 1)) not-equal-1-1?)
+
+(define (food-create p)
+  (food-check-create p (make-posn (random MAX) (random MAX))))
+
+
+; Posn Posn -> Posn
+; generative recursion
+; if generated position is the same as the origin one, try again
+(define (food-check-create p candidate)
+  (if (equal? p candidate) (food-create p) candidate))
+
+
+; Posn -> Boolean
+; use for testing only
+(define (not-equal-1-1? p)
+  (not (and (= (posn-x p) 1) (= (posn-y p) 1))))
+
+
 ; Worm -> Worm
-; moves given worm w one its current direction.
+; moves given worm w one step from its current direction.
 
-(check-expect (tock w1) (make-worm (list (make-posn 5 7)) "up"))
-(check-expect (tock w2) (make-worm (list (make-posn 11 9)
-                                         (make-posn 10 9)
-                                         (make-posn 9 9)) "right"))
+(check-expect (tock-worm w1) (make-worm (list (make-posn 5 7)) "up"))
+(check-expect (tock-worm w2) (make-worm (list (make-posn 11 9)
+                                              (make-posn 10 9)
+                                              (make-posn 9 9)) "right"))
 
-(define (tock w)
+(define (tock-worm w)
   (worm-up-shape w (tock-shape w)))
 
 
@@ -145,17 +252,22 @@
 (define (tock-shape w)
   (cut-the-last
    (add-at-head (worm-shape w)
-                (tock-head (first (worm-shape w)) (worm-d w))))) 
+                (tock-head w)))) 
 
+
+; Worm -> Segment
+; computes the head position for next time tick
+(define (tock-head w)
+  (advance (first (worm-shape w)) (worm-d w)))
 
 ; Segment Direction -> Segment
-; computes the head position for next time tick,
-; current head position and direction
+; computes the position for next time tick,
+; current position and direction
 
-(check-expect (tock-head (make-posn 5 8) "up") (make-posn 5 7))
-(check-expect (tock-head (make-posn 10 9) "right") (make-posn 11 9))
+(check-expect (advance (make-posn 5 8) "up") (make-posn 5 7))
+(check-expect (advance (make-posn 10 9) "right") (make-posn 11 9))
 
-(define (tock-head seg d)
+(define (advance seg d)
   (cond
     [(string=? "left" d) (make-posn (sub1 (posn-x seg)) (posn-y seg))]
     [(string=? "right" d) (make-posn (add1 (posn-x seg)) (posn-y seg))]
@@ -190,19 +302,39 @@
                 (cut-the-last (rest nelos)))]))
 
 
+; WorldState KeyEvent -> WorldState
+; controls the worm movement by keyboard
+(define (control ws ke)
+  (world-state-up-worm ws
+                       (control-worm (world-state-worm ws) ke)))
+
+
+; WorldState Worm -> WorldState
+; WorldState's updator for worm field
+(define (world-state-up-worm ws worm)
+  (make-world-state worm
+                    (world-state-food ws)))
+
+
+; WorldState Posn -> WorldState
+; WorldState's updator for food field
+(define (worm-state-up-food ws p)
+  (make-world-state (world-state-worm ws)
+                    p))
+
 
 ; Worm KeyEvent -> Worm
 ; controls the worm w with key event ke
 
-(check-expect (control w1 "down") w1)
-(check-expect (control w1 "right") (worm-up-d w1 "right"))
-(check-expect (control w1 "left") (worm-up-d w1 "left"))
-(check-expect (control w2 "right") w2)
-(check-expect (control w2 "left") w2)
-(check-expect (control w2 "up") (worm-up-d w2 "up"))
-(check-expect (control w2 "down") (worm-up-d w2 "down"))
+(check-expect (control-worm w1 "down") w1)
+(check-expect (control-worm w1 "right") (worm-up-d w1 "right"))
+(check-expect (control-worm w1 "left") (worm-up-d w1 "left"))
+(check-expect (control-worm w2 "right") w2)
+(check-expect (control-worm w2 "left") w2)
+(check-expect (control-worm w2 "up") (worm-up-d w2 "up"))
+(check-expect (control-worm w2 "down") (worm-up-d w2 "down"))
 
-(define (control w ke)
+(define (control-worm w ke)
   (cond
     [(and (key=? "left" ke)
           (or (string=? "up" (worm-d w))
@@ -230,9 +362,16 @@
              d))
 
 
+
+; WorldState -> Boolean
+; decides if the game is over
+(define (stop? ws)
+  (stop-worm? (world-state-worm ws)))
+
+
 ; Worm -> Boolean
 ; decides if the game is over
-(define (stop? w)
+(define (stop-worm? w)
   (or (hit-wall? w)
       (hit-itself? w)))
 
@@ -269,14 +408,20 @@
      (member? (first (worm-shape w)) (rest (worm-shape w)))]))
 
 
-; Worm -> Image
+; WorldState -> Image
 ; renders the scene when game stops
+(define (render-stop ws)
+  (render-stop-worm (world-state-worm ws)))
 
-(check-expect (render-stop (make-worm (list (make-posn 20 3)) "right"))
+
+; Worm -> Image
+; renders the worm when game stops
+
+(check-expect (render-stop-worm (make-worm (list (make-posn 20 3)) "right"))
               (place-image HIT-BORDER
                            (/ WIDTH 2) (* 3/4 HEIGHT)
-                           (render (make-worm (list (make-posn 20 3)) "right"))))
-(check-expect (render-stop (make-worm (list (make-posn 10 10)
+                           (render-worm (make-worm (list (make-posn 20 3)) "right"))))
+(check-expect (render-stop-worm (make-worm (list (make-posn 10 10)
                                             (make-posn 11 10)
                                             (make-posn 11 11)
                                             (make-posn 10 11)
@@ -284,20 +429,20 @@
                                       "left"))
               (place-image HIT-ITSELF
                            (/ WIDTH 2) (* 3/4 HEIGHT)
-                           (render (make-worm (list (make-posn 10 10)
-                                            (make-posn 11 10)
-                                            (make-posn 11 11)
-                                            (make-posn 10 11)
-                                            (make-posn 10 10))
-                                      "left"))))
-                           
+                           (render-worm (make-worm (list (make-posn 10 10)
+                                                         (make-posn 11 10)
+                                                         (make-posn 11 11)
+                                                         (make-posn 10 11)
+                                                         (make-posn 10 10))
+                                                   "left"))))
 
-(define (render-stop w)
+
+(define (render-stop-worm w)
   (render-txt
    (cond
      [(hit-wall? w) HIT-BORDER]
      [(hit-itself? w) HIT-ITSELF])
-   (render w)))
+   (render-worm w)))
 
 
 ; String Image -> Image
@@ -309,13 +454,25 @@
 
 
 
-; Number -> Worm
-; simulates a worm with tail.
-(define (main-worm-with-tail r)
-  (big-bang w2
-            [to-draw render]
-            [on-tick tock r]
+; Number Boolean -> Number
+; simulates a worm with tail, with randomly generated food;
+; display the final length of the tails~
+(define (main-worm r s)
+  (worm-length
+   (big-bang s2
+            [to-draw render-world-state]
+            [on-tick tock-world-state r]
             [on-key control]
-            [stop-when stop? render-stop]))
+            [stop-when stop? render-stop]
+            [state s])))
 
-;> (main-worm-with-tail 0.5)
+
+; WorldState -> Number
+; calculates the length of the worm with given ws
+(define (worm-length ws)
+  (length (worm-shape (world-state-worm ws))))
+
+
+(main-worm 0.2 #f)
+
+;> (main-worm 0.5)
