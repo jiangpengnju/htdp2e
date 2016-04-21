@@ -203,7 +203,40 @@
 (define (can-move-right b l)
   (and (< (block-x b) (- WIDTH 1))
        (not (member? (move-right b) l))))
-  
+
+
+; Tetris -> Boolean
+; computes whether the game should stop
+(check-expect (end? tetris0-drop) #f)
+
+(define (end? t)
+  (any-column-touches-ceiling? (tetris-landscape t) WIDTH))
+
+
+; Landscape Number -> Boolean
+; computes whether given landscape touches the ceiling, from colum 0 to x(exlusive)
+(define (any-column-touches-ceiling? l x)
+  (if (< x 0)
+      #f
+      (or (= HEIGHT (length (blocks-at-x l (- x 1))))
+          (any-column-touches-ceiling? l (- x 1)))))
+
+
+; Landscape Number -> ListOfBlocks
+; computes the list of blocks at x0 column of given landscape l
+(check-expect (blocks-at-x (list (make-block 5 9)
+                                 (make-block 7 9))
+                           5)
+              (list (make-block 5 9)))
+
+(define (blocks-at-x l x0)
+  (cond
+    [(empty? l) '()]
+    [else
+     (if (= (block-x (first l)) x0)
+         (cons (first l) (blocks-at-x (rest l) x0))
+         (blocks-at-x (rest l) x0))]))
+
 
 ; Number - Tetris
 ; simple tetris game, with the clock ticking rate r
@@ -211,4 +244,6 @@
   (big-bang tetris0
             [to-draw tetris-render]
             [on-tick tock r]
-            [on-key ke-handler]))
+            [on-key ke-handler]
+            [stop-when end?]
+            ))
