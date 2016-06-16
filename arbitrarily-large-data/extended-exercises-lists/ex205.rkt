@@ -60,7 +60,7 @@
 
 
 (define-struct worm [shape d])
-; A head is a structure: (make-worm NELos Direction)
+; A worm is a structure: (make-worm NELos Direction)
 ; interpretation: (make-head nelos d) represents a worm has the shape shown as nelos,
 ; and heading to direction d
 
