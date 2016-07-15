@@ -217,7 +217,7 @@
 
 
 ; Posn -> Boolean
-; use for testing only
+; uses for testing only
 (define (not-equal-1-1? p)
   (not (and (= (posn-x p) 1) (= (posn-y p) 1))))
 
